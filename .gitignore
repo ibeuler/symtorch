@@ -1,1 +1,55 @@
-libtorch.py
+libtorch.
+# --- Python Specific ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- IDEs and Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# --- Machine Learning / PyTorch ---
+# Exclude model weights or large datasets if you accidentally put them in the repo
+*.pth
+*.pt
+*.ckpt
+data/
+outputs/
+
+# --- Environment / Secrets ---
+.env
+.venv
+.pytest_cache/
+.coverage
+htmlcov/
