@@ -8,7 +8,7 @@ Note: this module was first developed for libphysics (and remains compatible): h
 
 pip install -e .
 
-## Install (PyPI/TestPyPI)
+## Install (PyPI)
 
 ```bash
 pip install libsymtorch
