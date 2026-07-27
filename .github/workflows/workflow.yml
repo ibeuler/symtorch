@@ -1,8 +1,10 @@
-name: CI
+name: CI & Publish
 
 on:
   push:
     branches: [ main, master ]
+    # Also trigger the workflow when you push a version tag
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
 
@@ -11,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.10, 3.11]
+        python-version: ["3.10", "3.11"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -33,3 +35,28 @@ jobs:
       - name: Run tests
         run: |
           pytest -q
+
+  # --- NEW PUBLISH JOB BELOW ---
+  publish:
+    needs: test # This forces it to wait for the test job to pass
+    if: startsWith(github.ref, 'refs/tags/v') # Only run if a tag was pushed
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          
+      - name: Install build dependencies
+        run: python -m pip install build
+        
+      - name: Build package
+        run: python -m build
+        
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
