@@ -10,7 +10,7 @@ where = ["src"]
 
 [project]
 name = "libsymtorch"
-version = "0.1.2"
+version = "0.2.0"
 authors = [
   { name="Ibrahim H.I. Abushawish", email="ibrahim.hamed2701@gmail.com" },
 ]
