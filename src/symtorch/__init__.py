@@ -12,11 +12,6 @@ convenient imports.
 from .main import (
 	SymTorch,
 	TorchExpr,
-	torchify,
-	torchify_callable,
-	torchquad_integrate,
-	torch_integrate_batched,
-	torchquad_integrate_vectorized,
 )
 
 try:
@@ -33,11 +28,6 @@ except Exception:
 __all__ = [
 	"SymTorch",
 	"TorchExpr",
-	"torchify",
-	"torchify_callable",
-	"torchquad_integrate",
-	"torch_integrate_batched",
-	"torchquad_integrate_vectorized",
 	"__version__",
 ]
 
