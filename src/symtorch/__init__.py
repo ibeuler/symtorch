@@ -13,9 +13,10 @@ from .main import (
 	SymTorch,
 	TorchExpr,
 	torchify,
+	torchify_callable,
 	torchquad_integrate,
 	torch_integrate_batched,
-	torch_integrate_batched_simpson,
+	torchquad_integrate_vectorized,
 )
 
 try:
@@ -33,9 +34,10 @@ __all__ = [
 	"SymTorch",
 	"TorchExpr",
 	"torchify",
+	"torchify_callable",
 	"torchquad_integrate",
 	"torch_integrate_batched",
-	"torch_integrate_batched_simpson",
+	"torchquad_integrate_vectorized",
 	"__version__",
 ]
 
