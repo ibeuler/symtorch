@@ -1,4 +1,4 @@
-
+--extra-index-url https://download.pytorch.org/whl/cu121
 torch==2.5.1+cu121
 sympy==1.13.1
 torchquad==0.5.0
