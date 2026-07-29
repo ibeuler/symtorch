@@ -30,6 +30,7 @@ USAGE
         chunk_size_points=10_000,
     )
 """
+from sympy import integrals
 from dataclasses import dataclass
 import sys
 from typing import List, Callable, Any
@@ -121,7 +122,8 @@ class TorchExpr:
     domain: List[List[float]]     # finite box for torchquad
     dim: int                      # number of integration variables
     n_params: int                 # number of extra parameters
-    sympy_expr: Any               # sympy expression reduced if
+    sympy_integrand: Any          # sympy integrand expression reduced
+    sympy_integral: Any           # sympy integral expression reduced if any
     variables: List[Symbol] = None       # sympy variables after change of variables
 
     @staticmethod
@@ -704,7 +706,17 @@ class TorchExpr:
         params = list(params_values) if params_values is not None else []
         
         def integrand(domain_points):
-            var_args = [domain_points[:, i] for i in range(self.dim)]
+            # 1. Find how many dimensions your parameter grid has (e.g., 1D, 2D, 3D)
+            max_p_dim = max([p.dim() for p in params if hasattr(p, 'dim')], default=0)
+            
+            # 2. Add that many trailing 1s to the integration points
+            # If params are (169, 1) [2D], target_shape becomes [-1, 1, 1]
+            target_shape = [-1] + [1] * max_p_dim
+            
+            # 3. Reshape the points so they sit safely on the first dimension
+            var_args = [domain_points[:, i].view(*target_shape) for i in range(self.dim)]
+            
+            # 4. Pass raw params. PyTorch's automatic broadcasting handles the rest!
             return self.func(*var_args, *params)
             
         return method.integrate(integrand, dim=self.dim, N=N, integration_domain=self.domain)
@@ -1203,13 +1215,14 @@ class SymTorch:
         func = lambdify(arglist, expr_work, modules=modules)
 
         return TorchExpr(
-            func=func,
-            domain=domain,
-            dim=len(new_vars),
-            n_params=len(params),
-            sympy_expr=expr_work,
-            variables=new_vars,
-        )
+                    func=func,
+                    domain=domain,
+                    dim=len(new_vars),
+                    n_params=len(params),
+                    sympy_integrand=expr_work,
+                    sympy_integral=integral,
+                    variables=new_vars,
+                )
 
     def torchify_callable(self, integrand: Callable, domain: List[List[float]], n_params: int = 0) -> TorchExpr:
         """Create a TorchExpr directly from a Python callable without SymPy compilation.
@@ -1266,6 +1279,7 @@ class SymTorch:
             domain=domain,
             dim=len(domain),
             n_params=n_params,
-            sympy_expr=None,
+            sympy_integrand=None,
+            sympy_integral=None,
             variables=None,
         )
