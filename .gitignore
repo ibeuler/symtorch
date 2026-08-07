@@ -32,7 +32,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+paper/
 # --- IDEs and Editors ---
 .vscode/
 .idea/
@@ -55,3 +55,4 @@ outputs/
 .pytest_cache/
 .coverage
 htmlcov/
+torchquad_vs_libtorch.ipynb
