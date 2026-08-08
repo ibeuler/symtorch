@@ -7,7 +7,7 @@ packages = []
 
 [project]
 name = "libsymtorch"
-version = "0.2.3"
+version = "0.2.4"
 authors = [
   { name="Ibrahim H.I. Abushawish", email="ibrahim.hamed2701@gmail.com" },
 ]
