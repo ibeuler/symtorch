@@ -3,29 +3,21 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
+packages = []
 
 [project]
-name = "torchsympy"
-version = "0.3.0"
+name = "libsymtorch"
+version = "0.2.3"
 authors = [
   { name="Ibrahim H.I. Abushawish", email="ibrahim.hamed2701@gmail.com" },
 ]
-description = "TorchSymPy: SymPy-to-Torch transcompilation and GPU-accelerated numerical integration"
+description = "DEPRECATED: This package has been renamed to torchsympy"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
-  "torch>=2.5.1",
-  "sympy>=1.13.1",
-  "torchquad>=0.5.0",
-  "numpy>=2.4.2",
-  "scipy>=1.17.0",
-  "loguru>=0.7.3",
+  "torchsympy>=0.3.0",
 ]
 
 classifiers = [
@@ -33,16 +25,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Mathematics",
-]
-
-[project.optional-dependencies]
-dev = [
-  "pytest>=8",
-  "build>=1",
-  "twine>=5",
-]
-examples = [
-  "matplotlib>=3.8",
 ]
 
 [project.urls]
