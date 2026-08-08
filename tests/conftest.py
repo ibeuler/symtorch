@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 
-# Ensure `import symtorch` works from a src-layout checkout without installation.
+# Ensure `import torchsympy` works from a src-layout checkout without installation.
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _SRC_ROOT = _PROJECT_ROOT / "src"
 if _SRC_ROOT.exists():
@@ -24,15 +24,15 @@ def sp():
 
 
 @pytest.fixture(scope="session")
-def symtorch_module():
-    import symtorch
+def torchsympy_module():
+    import torchsympy
 
-    return symtorch
+    return torchsympy
 
 
 @pytest.fixture(scope="session")
-def symtorch_instance(symtorch_module):
-    return symtorch_module.SymTorch()
+def torchsympy_instance(torchsympy_module):
+    return torchsympy_module.TorchSymPy()
 
 
 @pytest.fixture(scope="session")

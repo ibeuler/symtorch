@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 
-def test_simpson_rule_requires_odd_n(symtorch_module, torch, device, dtype):
-    TorchExpr = symtorch_module.TorchExpr
+def test_simpson_rule_requires_odd_n(torchsympy_module, torch, device, dtype):
+    TorchExpr = torchsympy_module.TorchExpr
 
     with pytest.raises(ValueError):
         TorchExpr._rule_simpson(0.0, 1.0, 2, device=device, dtype=dtype)
@@ -12,12 +12,12 @@ def test_simpson_rule_requires_odd_n(symtorch_module, torch, device, dtype):
         TorchExpr._rule_simpson(0.0, 1.0, 4, device=device, dtype=dtype)
 
 
-def test_params_formats_and_batch_shapes(symtorch_instance, sp, torch, device, dtype, tol):
+def test_params_formats_and_batch_shapes(torchsympy_instance, sp, torch, device, dtype, tol):
     x = sp.Symbol("x", real=True)
     a = sp.Symbol("a", real=True, positive=True)
 
     integral = sp.Integral(sp.exp(-a * x**2), (x, -sp.oo, sp.oo))
-    texpr = symtorch_instance.torchify(integral)
+    texpr = torchsympy_instance.torchify(integral)
     assert texpr.n_params == 1
 
     # 1) params as tensor (..., n_params)

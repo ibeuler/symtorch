@@ -1,16 +1,16 @@
-"""symtorch package.
+"""torchsympy package.
 
 This package is intended to be used as a standalone library:
 
-	import symtorch
-	lt = symtorch.SymTorch()
+	import torchsympy
+	lt = torchsympy.TorchSymPy()
 
-The implementation lives in :mod:`symtorch.main` and is re-exported here for
+The implementation lives in :mod:`torchsympy.main` and is re-exported here for
 convenient imports.
 """
 
 from .main import (
-	SymTorch,
+	TorchSymPy,
 	TorchExpr,
 )
 
@@ -19,15 +19,14 @@ try:
 
 	# Distribution name may differ from import package name.
 	try:
-		__version__ = _pkg_version("libsymtorch")
+		__version__ = _pkg_version("torchsympy")
 	except Exception:
-		__version__ = _pkg_version("symtorch")
+		__version__ = _pkg_version("torchsympy")
 except Exception:
-	__version__ = "0.2.1"
+	__version__ = "0.3.0"
 
 __all__ = [
-	"SymTorch",
+	"TorchSymPy",
 	"TorchExpr",
 	"__version__",
 ]
-

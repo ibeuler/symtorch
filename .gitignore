@@ -56,3 +56,5 @@ outputs/
 .coverage
 htmlcov/
 torchquad_vs_libtorch.ipynb
+# Testing documentation
+tests/TESTING_DOCUMENTATION.md

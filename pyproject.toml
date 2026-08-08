@@ -9,12 +9,12 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [project]
-name = "libsymtorch"
-version = "0.2.2"
+name = "torchsympy"
+version = "0.3.0"
 authors = [
   { name="Ibrahim H.I. Abushawish", email="ibrahim.hamed2701@gmail.com" },
 ]
-description = "SymPy-to-Torch conversion and numerical integration"
+description = "TorchSymPy: SymPy-to-Torch transcompilation and GPU-accelerated numerical integration"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
@@ -46,4 +46,4 @@ examples = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/ibeuler/symtorch"
+"Homepage" = "https://github.com/ibeuler/TorchSymPy"

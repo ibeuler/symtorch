@@ -4,17 +4,17 @@
 Standalone library.
 
 Two-stage design for performance:
-    1. SymTorch().torchify()            — expensive SymPy work done ONCE
+    1. TorchSymPy().torchify()            — expensive SymPy work done ONCE
                                          (change-of-vars + ``lambdify``)
     2. TorchExpr.torchquad_integrate()  — cheap torch-only integration,
                                          called MANY times
 
 USAGE
 =====
-    import symtorch
+    import torchsympy
 
     # Step 1: build once (slow: SymPy subs + lambdify, ~200–500 ms)
-    lt = symtorch.SymTorch()
+    lt = torchsympy.TorchSymPy()
     texpr = lt.torchify(
         sp.Integral(integrand, (y_A, -sp.oo, sp.oo), (y_B, -sp.oo, sp.oo))
     )
@@ -56,6 +56,7 @@ from sympy import (
     sinh,
     tan,
     tanh,
+    gamma,
 )
 
 from loguru import logger
@@ -84,7 +85,7 @@ setup_logging(enable=False)
 class TorchExpr:
     """Pre-built torch function together with its finite integration domain.
 
-    This is the object returned by ``SymTorch.torchify`` when integration
+    This is the object returned by ``TorchSymPy.torchify`` when integration
     limits are supplied (directly or via a SymPy ``Integral``).  It stores
     both the numerical callable and all metadata needed by the integration
     helpers in this module.
@@ -352,13 +353,13 @@ class TorchExpr:
         1. Simple 1D integral without parameters::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Integral, exp, oo
 
             x = symbols("x", real=True)
             integral_expr = Integral(exp(-x**2), (x, -oo, oo))
 
-            lt = symtorch.SymTorch()
+            lt = torchsympy.TorchSymPy()
             texpr = lt.torchify(integral_expr)
             re, im = texpr.torchquad_integrate(N=121)
             ````
@@ -366,14 +367,14 @@ class TorchExpr:
         2. Integral with parameters (e.g. Fourier transform)::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Integral, exp, I, oo
             import torch
 
             x, k = symbols("x k", real=True)
             integral_expr = Integral(exp(-x**2) * exp(I * k * x), (x, -oo, oo))
 
-            lt = symtorch.SymTorch()
+            lt = torchsympy.TorchSymPy()
             texpr = lt.torchify(integral_expr)
 
             # Evaluate at k = 0.5
@@ -485,13 +486,13 @@ class TorchExpr:
         1. 1D integral without parameters (single value)::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Integral, exp, oo
 
             x = symbols("x", real=True)
             integral_expr = Integral(exp(-x**2), (x, -oo, oo))
 
-            lt = symtorch.SymTorch()
+            lt = torchsympy.TorchSymPy()
             texpr = lt.torchify(integral_expr)
 
             # No parameters → pass ``None`` for ``params_values``
@@ -504,14 +505,14 @@ class TorchExpr:
         2. 1D integral evaluated on a grid of parameter values::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Integral, exp, I, oo
             import torch
 
             x, k = symbols("x k", real=True)
             integral_expr = Integral(exp(-x**2) * exp(I * k * x), (x, -oo, oo))
 
-            lt = symtorch.SymTorch()
+            lt = torchsympy.TorchSymPy()
             texpr = lt.torchify(integral_expr)
 
             # Parameter grid: 250 points between -5 and 5
@@ -652,8 +653,9 @@ class TorchExpr:
         Returns
         -------
         torch.Tensor
-            A tensor containing the result of the integration, inheriting the 
-            batch shape of the broadcasted integrand output.
+            A tensor containing the result of the integration. For scalar-valued
+            integrands, the returned tensor is shape-normalized to match the
+            batched API output shape.
         
         USAGE
         =====
@@ -661,8 +663,8 @@ class TorchExpr:
 
             ````python
             
-            import symtorch
-            lt = symtorch.SymTorch()
+            import torchsympy
+            lt = torchsympy.TorchSymPy()
             
             def integrand(x, A_grid, B_grid):
                 # x is (101,) from torchquad
@@ -718,11 +720,91 @@ class TorchExpr:
             
             # 4. Pass raw params. PyTorch's automatic broadcasting handles the rest!
             return self.func(*var_args, *params)
-            
-        return method.integrate(integrand, dim=self.dim, N=N, integration_domain=self.domain)
+
+        result = method.integrate(integrand, dim=self.dim, N=N, integration_domain=self.domain)
+        if torch.is_tensor(result) and result.ndim > 0 and result.shape[-1] == 1:
+            result = result.squeeze(-1)
+        return result
+
+    def torch_differentiate(
+        self,
+        domain_points=None,
+        params_values=None,
+        argnums=None,
+    ):
+        """Batched multi-dimensional differentiation of the TorchExpr's function.
+
+        This method is provided for simplicity of usage and completeness. It allows
+        users to easily compute the batched Jacobian of the underlying PyTorch callable
+        (`self.func`) over a multi-dimensional parameter grid on the GPU, utilizing
+        parallel computing via PyTorch's `vmap` and `jacrev`. It works for any arbitrary
+        function represented by this TorchExpr (such as an integrand, or a plain function
+        wrapped via `torchify_callable`).
+
+        Parameters
+        ----------
+        domain_points : iterable of torch.Tensor or None
+            Raw variable tensors to be passed directly to the function (matching `self.dim`).
+        params_values : iterable of torch.Tensor or None
+            Raw parameter tensors to be passed directly to the function (matching `self.n_params`).
+        argnums : int or tuple of ints, optional
+            The indices of the arguments to differentiate with respect to.
+            If None, differentiates with respect to all parameters (or variables if n_params=0).
+            Indices 0 to dim-1 correspond to domain_points, dim to dim+n_params-1 correspond to params.
+
+        Returns
+        -------
+        torch.Tensor or tuple of torch.Tensor
+            The batched Jacobian of the function with respect to the specified arguments.
+            The output tensors will have the same batch shape as the broadcasted inputs.
+        """
+        from torch.func import vmap, jacrev
+
+        d_points = list(domain_points) if domain_points is not None else []
+        p_vals = list(params_values) if params_values is not None else []
+
+        if len(d_points) != self.dim:
+            raise ValueError(f"Expected {self.dim} domain_points, got {len(d_points)}")
+        if len(p_vals) != self.n_params:
+            raise ValueError(f"Expected {self.n_params} params_values, got {len(p_vals)}")
+
+        all_args = d_points + p_vals
+        if not all_args:
+            raise ValueError("No arguments to differentiate.")
+
+        if argnums is None:
+            if self.n_params > 0:
+                argnums = tuple(range(self.dim, self.dim + self.n_params))
+            else:
+                argnums = tuple(range(self.dim))
+
+        # Ensure all inputs are tensors and broadcast them to a common batch shape
+        t_args = [torch.as_tensor(a) for a in all_args]
+        b_args = torch.broadcast_tensors(*t_args)
+        batch_shape = b_args[0].shape
+
+        if not batch_shape:
+            # Scalar case
+            jac_fn = jacrev(self.func, argnums=argnums)
+            return jac_fn(*b_args)
+
+        # Vectorized case: flatten the batch dimensions, vmap, then reshape back
+        flat_args = [a.reshape(-1) for a in b_args]
+        jac_fn = vmap(jacrev(self.func, argnums=argnums))
+        
+        # Check if we are differentiating w.r.t multiple arguments
+        is_tuple = isinstance(argnums, (list, tuple)) and len(argnums) > 1
+        
+        flat_result = jac_fn(*flat_args)
+        
+        if is_tuple:
+            return tuple(r.reshape(batch_shape + r.shape[1:]) for r in flat_result)
+        else:
+            return flat_result.reshape(batch_shape + flat_result.shape[1:])
 
 
-class SymTorch:
+
+class TorchSymPy:
     def __init__(self):
         pass
 
@@ -929,7 +1011,7 @@ class SymTorch:
 
         Keeping this mapping in a separate method avoids cluttering
         :meth:`torchify` and makes it easy to customize or extend in user
-        code by subclassing ``SymTorch``.
+        code by subclassing ``TorchSymPy``.
         """
 
         def safe_sqrt(x):
@@ -979,6 +1061,7 @@ class SymTorch:
             # Constants
             "pi": getattr(torch, "pi", float(np.pi)),
             "E": float(np.e),
+            "gamma": lambda x: torch.exp(torch.lgamma(x)),
         }]
 
     def torchify(
@@ -995,7 +1078,7 @@ class SymTorch:
         """Convert a SymPy object into a torch-compatible callable or TorchExpr.
 
         This mirrors the original functional ``torchify`` but lives as a
-        method on ``SymTorch``.  It performs change-of-variables for
+        method on ``TorchSymPy``.  It performs change-of-variables for
         infinite / semi-infinite limits at the SymPy level (once), then
         ``lambdify``'s the transformed expression.
 
@@ -1051,51 +1134,51 @@ class SymTorch:
         1. Plain function (no integration)::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, exp
 
             x = symbols("x", real=True)
 
-            lt = symtorch.SymTorch()
+            lt = torchsympy.TorchSymPy()
             f  = lt.torchify(exp(-x**2), variables=[x])
             ````
 
         2. Integral with finite limits::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Integral, exp
 
             x = symbols("x", real=True)
             integral = Integral(exp(-x**2), (x, 0, 1))
 
-            lt    = symtorch.SymTorch()
+            lt    = torchsympy.TorchSymPy()
             texpr = lt.torchify(integral)
             ````
 
         3. Integral with infinite limits (automatic change of variables)::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Integral, exp, oo
 
             x = symbols("x", real=True)
             integral = Integral(exp(-x**2), (x, -oo, oo))
 
-            lt    = symtorch.SymTorch()
+            lt    = torchsympy.TorchSymPy()
             texpr = lt.torchify(integral)
             ````
 
         4. Equation with integral on the right-hand side::
 
             ````python
-            import symtorch
+            import torchsympy
             from sympy import symbols, Eq, Integral, exp, oo
 
             x, y = symbols("x y", real=True)
             eq = Eq(y, Integral(exp(-x**2), (x, -oo, oo)))
 
-            lt    = symtorch.SymTorch()
+            lt    = torchsympy.TorchSymPy()
             texpr = lt.torchify(eq)  # integral auto-extracted
             ````
         """
@@ -1257,8 +1340,8 @@ class SymTorch:
 
             ````python
             import torch
-            import symtorch
-            lt = symtorch.SymTorch()
+            import torchsympy
+            lt = torchsympy.TorchSymPy()
             
             # Integrand: exp(-alpha * x^2 - beta * y^2)
             def my_integrand(x, y, alpha, beta):
