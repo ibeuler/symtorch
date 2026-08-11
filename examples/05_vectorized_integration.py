@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import torch
 import sympy as sp
-
+from torchquad import GaussLegendre
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _SRC_ROOT = _PROJECT_ROOT / "src"
 if _SRC_ROOT.exists():
@@ -43,12 +43,12 @@ def main():
     
     print("\nVectorized Evaluation...")
     # Signature matches alphabetical symbols: a, b
-    re, im = texpr.torchquad_integrate_vectorized(
+    result = texpr.torchquad_integrate_vectorized(
         params_values=[a_grid, b_grid],
-        method="gauss-legendre",
+        method=GaussLegendre(),
         N=21
     )
-    
+    re = result.real    
     print(f"\nResult shape: {re.shape} -> Note that it returned shape (3, 4) properly!")
     print("Results matrix (a along rows, b along cols):")
     print(re)

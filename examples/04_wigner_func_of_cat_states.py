@@ -11,8 +11,6 @@ if _SRC_ROOT.exists():
     sys.path.insert(0, str(_SRC_ROOT))
 
 import torchsympy
-from torchquad import GaussLegendre
-
 torch.set_default_dtype(torch.float64)
 
 def main():
@@ -52,21 +50,20 @@ def main():
     # The signature of the compiled expression params matches alphabetical order of free symbols: p, q
     params_tensor = torch.cat([p_flat, q_flat], dim=1)
     
-    print(f"Evaluating {grid_size}x{grid_size} = {grid_size**2} grid points on CPU...")
+    print(f"Evaluating {grid_size}x{grid_size} = {grid_size**2} grid points...")
     
     # 3. Evaluate massively batched integral
     re, im = texpr.torch_integrate_batched(
         params_values=params_tensor,
         N=101,  
         method="gauss-legendre",
-        device="cpu",
         chunk_size_params=4096
     )
     
     print("Evaluation complete. Plotting...")
     
     # 4. Plot
-    W = re.reshape(grid_size, grid_size).numpy()
+    W = re.reshape(grid_size, grid_size).cpu().numpy()
     
     plt.figure(figsize=(8, 6))
     plt.imshow(W.T, cmap='RdBu', origin='lower', extent=[-4, 4, -4, 4])
